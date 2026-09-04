@@ -1,0 +1,289 @@
+MOORE FOODS PTY LTD
+Fictional ERP Process Knowledge Base
+RAG Support Assistant — Documentation-Only Foundation
+Version 3.0  |  31 August 2026
+An end-to-end walkthrough of Moore Foods' fictional ERP processes, rules, roles and statuses, structured for retrieval by a documentation-grounded RAG support assistant.
+1. Document Purpose
+This document is the primary knowledge-base source for the Moore Foods ERP Support Assistant. It walks through the fictional ERP's end-to-end processes order-to-cash, procure-to-pay, plan-to-produce and inventory control along with the business rules, statuses, roles and troubleshooting guidance a support assistant needs to answer process-related questions.
+The document uses explicit headings and short, self-contained sections so a RAG system can retrieve focused passages and answer questions accurately.
+1.1 Scope of This Version - Documentation Only, No SQL Retrieval
+This version of the assistant is scoped to documentation retrieval only. It answers questions about how ERP processes work, what business rules and statuses mean, and who is responsible for what; all grounded in this document.
+It is explicitly out of scope for this version to:
+Connect to or query the live SQL ERP database.
+Report current, record-level facts (e.g. today's open orders, current stock on hand, a specific customer's status).
+Answer questions that require live transactional data rather than documented process knowledge.
+Where a question requires live data, the assistant should say so plainly rather than guessing. Connecting a read-only SQL retrieval layer is a planned future phase - see Section 11 (Future Expansion), but is not part of the current build.
+1.2 Fictional-System Notice
+All company names, processes, statuses, data structures, records and examples in this document are fictional. This is not proprietary company, employer or customer documentation.
+2. Moore Foods ERP Environment
+2.1 Company Overview
+Moore Foods Pty Ltd is a fictional Australian food manufacturer and distributor producing packaged ambient and chilled food products for supermarket, hospitality and wholesale customers.
+2.2 Physical Warehouse Network
+Moore Foods operates four physical warehouse facilities. This structure is treated as stable background context for explaining processes, it is not live data, and does not change based on day-to-day transactions.
+Facility Type | Count | Purpose
+Distribution Centre | 2 | Finished-goods storage, fulfilment, picking and outbound distribution.
+Manufacturing Site | 1 | Production, material consumption and finished-goods creation.
+Raw Materials Site | 1 | Storage and availability of production inputs.
+Total Warehouses | 4 | Four facilities forming the physical inventory network.
+This warehouse structure is referenced throughout the process sections below (for example, receiving happens at the Raw Materials Site, production at the Manufacturing Site, and outbound shipment from the Distribution Centres).
+2.3 Warehouse and Location Concepts
+Warehouse — identifies the physical facility.
+Warehouse Type — identifies the facility's operational role (distribution, manufacturing, raw materials).
+Location/Bin — identifies a specific storage or operational position within a warehouse.
+Inventory — the link between an item, a quantity, and a warehouse/location.
+3. ERP Operating Model — End-to-End Process Flows
+These are the four core process flows that govern how work moves through the ERP system.
+3.1 Order-to-Cash
+Customer → Sales Order → Credit/Price Validation → Inventory Allocation → Warehouse Picking → Shipment → Customer Invoice → Accounts Receivable
+3.2 Procure-to-Pay
+Requirement → Purchase Requisition → Purchase Order → Goods Receipt → Quality/Put-away → Supplier Invoice → Accounts Payable
+3.3 Plan-to-Produce
+Production Demand → Production Order → Material Availability → Material Issue → Production → Quality → Finished Goods Receipt
+3.4 Inventory Control
+Receipt/Production → Storage → Allocation/Consumption → Transfer/Adjustment → Cycle Count → Reconciliation
+3.5 Physical Network Role in the Process Flows
+Raw Materials Site — production-input storage; feeds the Plan-to-Produce flow.
+Manufacturing Site — production and finished-good creation.
+Distribution Centres — finished-goods storage, picking and outbound distribution; the last stage of Order-to-Cash.
+Warehouse and location data connects inventory with purchasing, manufacturing, sales and shipments across all four flows.
+4. Common ERP Roles
+Each process step below references the role responsible for it. These are the standard roles across the fictional ERP:
+Role | Responsibility
+Customer Service Officer | Sales orders and customer enquiries.
+Sales Manager | Commercial exceptions, pricing, and new customer approval.
+Credit Officer | Credit limits and holds.
+Procurement Officer | Suppliers, requisitions and purchase orders.
+Warehouse Supervisor | Warehouse execution and movements.
+Warehouse Receiver | Inbound receipts and batch information.
+Inventory Controller | Stock accuracy, transfers, adjustments and counts.
+Production Planner | Production planning and orders.
+Production Operator | Production execution and output/consumption.
+Quality Officer | Quality checks and holds.
+Finance Officer | Invoicing, reconciliation and financial processing.
+Accounts Payable Officer | Supplier invoices.
+ERP Application Support Analyst | Incidents, transaction errors, integrations and approved configuration.
+5. Global Business Rules
+Rule ID | Rule
+BR-GEN-001 | Only approved customers and suppliers may be used in transactions.
+BR-GEN-002 | Credit-held customers cannot have orders released for shipment until authorised release.
+BR-GEN-003 | Inventory cannot be allocated beyond available quantity unless an approved backorder process applies.
+BR-GEN-004 | Standard purchasing must use approved suppliers.
+BR-GEN-005 | Lot-controlled food products require batch/lot traceability through receipt, production, storage and shipment.
+BR-GEN-006 | Required quality checks must pass before affected production can be completed.
+BR-GEN-007 | Users may only perform transactions permitted by their role.
+BR-GEN-008 | Operational records should not be deleted where audit/financial traceability would be broken; use approved corrections.
+BR-GEN-009 | Warehouse, item and location relationships must be valid.
+BR-GEN-010 | Inventory balances should be traceable to originating transactions.
+6. Sales & Distribution
+Module ID: SAL
+Covers customer maintenance, sales orders, credit, pricing, allocation, shipment and invoicing.
+* New customers must be approved by the Sales Manager before they can be used in any transaction, per BR-GEN-001. The Customer Service Officer creates and maintains customer records but does not grant approval status — these are separate actions performed by separate roles.
+6.1 Related Data Concepts
+Customers
+Pricing
+Sales orders and order lines
+Warehouses
+Shipments
+Customer invoices
+6.2 Core Process — Step by Step
+Customer Service Officer creates or maintains the customer record and enters the sales order.
+The order is validated for credit and price exceptions; a hold is applied if either check fails.
+Once released, inventory is allocated against the order.
+The Warehouse Supervisor's team picks and ships the order from a Distribution Centre.
+Finance Officer raises the customer invoice.
+The invoice moves through Accounts Receivable to completion.
+6.3 Key Statuses
+Status | Meaning
+SO-OPEN | Order has been created and is progressing through the sales process.
+CR-HOLD | Order is held because the customer is on credit hold; requires Credit Officer release.
+INV-HOLD | Order is held pending inventory availability.
+PRICE-HOLD | Order is held pending a pricing exception approval.
+ALLOCATED | Inventory has been reserved against the order.
+PICKING | Order is being picked in the warehouse.
+SHIPPED | Order has left the Distribution Centre.
+INVOICED | Customer has been invoiced for the order.
+7. Procurement
+Module ID: PUR
+Covers purchasing and receipt of raw materials, packaging, consumables and selected services.
+7.1 Related Data Concepts
+Suppliers
+Purchase orders and PO lines
+Goods receipts
+Supplier invoices
+7.2 Core Process - Step by Step
+A requirement triggers a purchase requisition, which starts as PR-DRAFT.
+Procurement Officer obtains approval; the requisition becomes PR-APPROVED.
+An approved requisition is converted to a purchase order with an approved supplier (per BR-GEN-004).
+The Warehouse Receiver records the goods receipt against the PO, in full or in part.
+Received lot-controlled items may be placed on QC-HOLD pending quality release (per BR-GEN-006).
+The supplier invoice is matched against the PO and receipt, then processed for payment.
+7.3 Key Statuses
+Status | Meaning
+PR-DRAFT | Requisition created but not yet approved.
+PR-APPROVED | Requisition approved and ready to be converted to a purchase order.
+PO-OPEN | Purchase order issued to the supplier and awaiting receipt.
+PART-RECEIVED | Some quantity has been received; the remainder is still outstanding.
+RECEIVED | Full ordered quantity has been received.
+QC-HOLD | Received goods are held pending a quality check.
+CLOSED | Purchase order is complete; no further action required.
+8. Inventory Management
+Module ID: INV
+Covers stock balances, locations, lot traceability, statuses and movements.
+8.1 Related Data Concepts
+Items
+Warehouses and locations
+On-hand / allocated / available quantities
+Lots and expiry
+Inventory transactions
+8.2 Core Process — Step by Step
+Stock enters inventory through a receipt (Procurement) or production output (Manufacturing).
+The Inventory Controller ensures the stock is correctly located and lot-traceable (per BR-GEN-005 and BR-GEN-009).
+Stock can be transferred between locations or warehouses as needed.
+Adjustments correct recorded quantities, always traceable to a transaction (per BR-GEN-010).
+Cycle counts periodically verify physical stock against system records, feeding any required adjustment.
+8.3 Key Statuses
+Status | Meaning
+AVAILABLE | Stock is free and eligible for allocation.
+ALLOCATED | Stock has been reserved against a specific demand and cannot be reallocated elsewhere.
+QUARANTINED | Stock is held pending quality release and cannot be allocated.
+EXPIRED | Stock is past its expiry date and is not usable.
+TRANSFER | Stock is in movement between locations or warehouses.
+ADJUSTMENT | Stock quantity has been corrected via an adjustment transaction.
+9. Manufacturing
+Module ID: MFG
+Covers production using bills of materials (BOMs), material allocation, production reporting and quality controls.
+9.1 Related Data Concepts
+Finished goods
+Raw materials
+BOMs and BOM components
+Production orders
+Output and consumption
+9.2 Core Process — Step by Step
+Production Planner creates a production order for a finished good; it starts as PLANNED.
+When material availability is confirmed, the order is RELEASED and materials can be issued from the Raw Materials Site.
+Production Operator runs the order, which moves to IN-PROCESS.
+Required quality checks must pass before completion (per BR-GEN-006); failing checks place the order on QA-HOLD.
+On successful completion, finished goods are received into inventory and the order is marked COMPLETE.
+The order is CLOSED once all reporting is finalised.
+9.3 Key Statuses
+Status | Meaning
+PLANNED | Production order created but not yet released to the floor.
+RELEASED | Order released; materials can be issued and production can begin.
+IN-PROCESS | Production is currently underway.
+QA-HOLD | Production is held pending a required quality check.
+COMPLETE | Production finished and finished-goods output has been recorded.
+CLOSED | Order finalised; no further transactions expected.
+10. Warehouse Management
+Module ID: WH
+Covers receiving, put-away, picking, packing, shipment and internal movements.
+10.1 Related Data Concepts
+Warehouses
+Bins/locations
+Receipts
+Pick tasks
+Shipments and carrier information
+10.2 Core Process - Step by Step
+Warehouse Receiver logs inbound goods as they arrive (RECEIVING).
+Goods are moved to their storage location (PUTAWAY).
+For outbound orders, Warehouse Supervisor's team picks the required items (PICKING).
+Picked items are packed for dispatch (PACKED).
+The shipment departs and is marked SHIPPED.
+Any issue during the process (e.g. damaged stock, location mismatch) is flagged as an EXCEPTION for investigation.
+10.3 Key Statuses
+Status | Meaning
+RECEIVING | Goods are currently being received into the warehouse.
+PUTAWAY | Goods are being moved from receiving to their storage location.
+PICKING | Order is being picked for an outbound shipment.
+PACKED | Order has been packed and is ready to ship.
+SHIPPED | Goods have left the warehouse.
+EXCEPTION | An issue has occurred that requires attention before the process can continue.
+11. Finance & Accounting
+Module ID: FIN
+Covers the financial impacts of sales, procurement, inventory and manufacturing activity.
+11.1 Related Data Concepts
+Customer invoices
+Supplier invoices
+Payment terms
+Valuation
+Financial periods
+11.2 Core Process - Step by Step
+Sales activity generates a customer invoice; procurement activity generates a supplier invoice.
+Invoices are recorded as UNPOSTED until they pass validation.
+Once validated, the invoice is POSTED to the ledger.
+An invoice may be placed ON-HOLD if a discrepancy needs resolution (e.g. an unmatched PO/receipt reference).
+Payment or receipt of funds moves the invoice to PAID.
+The record is CLOSED once reconciliation is complete.
+11.3 Key Statuses
+Status | Meaning
+UNPOSTED | Financial transaction has not yet been posted to the ledger.
+POSTED | Transaction has been posted to the ledger.
+ON-HOLD | Transaction is held pending resolution of a discrepancy.
+PAID | Invoice has been paid (or payment received) in full.
+CLOSED | Financial record is finalised.
+12. Cross-Module Troubleshooting Guidance
+These are common process/rule questions the assistant can answer directly from this document. Each maps to the relevant modules and the documented rule or process step that explains the answer.
+Question | Modules | Documented Answer Basis
+Why can't a sales order be allocated? | SAL, INV | Explain that allocation requires available (not quarantined/expired) stock at or above the order quantity, per BR-GEN-003.
+Why is a sales order on credit hold? | SAL, FIN | Explain CR-HOLD and that release requires Credit Officer authorisation, per BR-GEN-002.
+Why is a purchase order only partially received? | PUR | Explain PART-RECEIVED status and that it reflects a receipt lower than the ordered quantity; full receipt closes it out.
+Why can't production be completed? | MFG | Explain that required quality checks must pass first (BR-GEN-006); an unresolved check places the order on QA-HOLD.
+Can quarantined stock be allocated? | INV | No — quarantined stock is excluded from available quantity and cannot be allocated until released.
+Why would a supplier invoice be held? | PUR, FIN | Explain that mismatches between the invoice, PO and goods receipt typically drive an ON-HOLD status pending resolution.
+What role releases a credit hold? | SAL, FIN | The Credit Officer is responsible for authorising release of credit-held orders.
+What role approves a quality hold? | MFG, INV, PUR | The Quality Officer performs quality checks and clears QC-HOLD / QA-HOLD statuses.
+12.1 Questions Out of Scope for This Version
+The following question types require current, record-level data rather than documented process knowledge. The assistant should state that this information is not available in its current documentation-only scope, rather than attempting to answer:
+"How many orders are currently on hold?" (requires live transaction data)
+"What is customer X's current credit status?" (requires live master data)
+"How much stock of item Y is on hand right now?" (requires live inventory data)
+"Which purchase orders are open today?" (requires live transaction data)
+These are strong candidates for the future SQL-connected phase described in Section 11 below.
+13. Recommended Assistant Response Pattern
+Classify the intent: process, rule, definition, troubleshooting, or role/responsibility.
+Retrieve the relevant documentation section(s) above.
+Explain the answer in plain language, referencing the documented process or rule.
+Provide the relevant steps or checks where appropriate.
+Identify the responsible role.
+Do not infer facts that aren't supported by this document.
+If the question requires current/live data (see 12.1), say so plainly and note that live-data retrieval is a planned future capability, rather than guessing or improvising an answer.
+13.1 Example Question
+User: "Why is my sales order on credit hold?"
+The assistant retrieves the CR-HOLD meaning and the credit-release process from Section 6.
+It explains that credit hold blocks normal order release until authorised.
+It identifies the Credit Officer as the responsible role.
+It does not state which specific order or customer is affected, since that requires live data outside this version's scope.
+14. RAG Metadata Recommendations
+Suggested metadata fields for tagging chunks of this document to improve retrieval accuracy:
+Metadata Field | Purpose
+document_id | Stable knowledge-base identifier.
+document_version | Version control.
+section | Retrieval section (e.g. "6. Sales & Distribution").
+knowledge_type | Process, rule, status, terminology or role.
+module_id | SAL, PUR, INV, MFG, WH or FIN.
+business_rule_id | Stable rule identifier (e.g. BR-GEN-002), where applicable.
+status_id | Stable status identifier, where applicable.
+role_id | Stable role identifier, where applicable.
+effective_date | For future version/effective-date filtering.
+15. Knowledge Base Maintenance
+Update process sections when the fictional ERP process changes.
+Add statuses only when their meanings are documented here first.
+Update the warehouse structure section only when facilities are added or reclassified.
+Keep this document free of volatile, record-level facts — those belong in a future live-data layer, not in the RAG document.
+Maintain document versions and effective dates.
+16. Future Expansion — Live SQL Data Retrieval (Not Part of This Version)
+A later phase of this project may connect the assistant to a read-only SQL layer so it can answer current, record-level questions (e.g. "which orders are on hold right now") alongside the documented process guidance in this file. That work is intentionally deferred and is not part of the current build.
+When that phase begins, the guiding principles are expected to be:
+Documentation (this file) remains the source of truth for how processes and rules work.
+SQL becomes the source of truth for current, record-level facts.
+Any SQL connector should be strictly read-only — it should retrieve information but never create, modify, delete, approve or release ERP transactions.
+The assistant should always be able to distinguish, in its answers, what came from documentation versus what came from live data.
+17. Final Project Objective
+The Moore Foods ERP Support Assistant should provide a grounded interface for common ERP process questions, using this document as its sole knowledge source for the current version.
+17.1 Success Criteria for This Version
+Correct module identification.
+Correct process and rule retrieval.
+Clear, step-by-step procedural guidance.
+Correct role identification.
+Correct status interpretation.
+No invented or unsupported facts.
+Clear, plain statement when a question falls outside documentation-only scope (see Section 12.1).
