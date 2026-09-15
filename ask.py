@@ -201,7 +201,17 @@ def strip_emoji(text):
 # comments). k=4 must also match (or be a deliberate, considered choice
 # different from) test_retriever.py's setting.
 embeddings = VoyageAIEmbeddings(model="voyage-3")
-vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
+# PHASE 3 FIX: use an absolute path anchored to this file's own location,
+# rather than a relative "./chroma_db". A relative path depends on the
+# current working directory at runtime, which can differ between a local
+# terminal and a cloud deployment (e.g. Streamlit Community Cloud), even
+# though the chroma_db folder itself is correctly present in both places.
+# LangChain's Chroma wrapper doesn't error on a wrong/empty path, it just
+# silently opens (or creates) an empty collection there, which is why this
+# showed up as "0 retrieved sections" in deployment rather than a crash.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
+vectorstore = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
 retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4})
 
 client = Anthropic()
