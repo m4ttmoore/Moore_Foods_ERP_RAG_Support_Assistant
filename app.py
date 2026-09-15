@@ -10,6 +10,36 @@
 import streamlit as st
 
 st.title("Moore Foods ERP Support Assistant")
+st.caption(
+    "Ask about Moore Foods' documented ERP processes and rules, or look up "
+    "the live status of a specific sales order or the stock level of a "
+    "specific item. See \"What can I ask?\" below for examples and current "
+    "limitations."
+)
+
+with st.expander("What can I ask?"):
+    st.markdown(
+        """
+**Documented processes and rules** — e.g. "How do I process a sales order
+from start to finish?" or "What does CR-HOLD mean?"
+
+**A specific sales order's status** — try `SO10001` through `SO10013`
+(e.g. "What's the status of order SO10002?")
+
+**A specific item's available stock** — try `FG1001`, `FG2001`, or `FG1003`
+(e.g. "What's the available stock for FG1001?")
+
+**Not yet supported:** purchase orders, production orders, customer credit
+status, warehouse capacity, or aggregate/count questions (e.g. "how many
+orders are on hold"). The assistant will tell you plainly if you ask one
+of these, rather than guessing.
+
+**Source data:** every answer is grounded in the actual process
+documentation and database below, viewable on GitHub —
+[process documentation](https://github.com/m4ttmoore/Moore_Foods_ERP_RAG_Support_Assistant/blob/main/Data/Moore_Foods_ERP_Process_Knowledge_Base_v3.docx)
+and [database file](https://github.com/m4ttmoore/Moore_Foods_ERP_RAG_Support_Assistant/blob/main/Database/Moore_Foods_ERP.db).
+        """
+    )
 
 # STARTUP GUARD: ask.py builds the embeddings client, Chroma connection,
 # and Anthropic client at import time (see ask.py's module-level code).
@@ -61,8 +91,32 @@ for message in st.session_state.messages:
                 message["sources"], message["tools_used"], message["stop_reason"]
             )
 
+# Example question buttons: give a first-time visitor (e.g. from LinkedIn,
+# with no context on scope) a one-click way to see the assistant actually
+# work, using real questions and real IDs rather than requiring them to
+# guess what's answerable.
+if "pending_question" not in st.session_state:
+    st.session_state.pending_question = None
+
+st.write("Try an example:")
+example_cols = st.columns(3)
+if example_cols[0].button("How do I process a sales order from start to finish?"):
+    st.session_state.pending_question = (
+        "How do I process a sales order from start to finish?"
+    )
+if example_cols[1].button("What's the status of order SO10002?"):
+    st.session_state.pending_question = "What's the status of order SO10002?"
+if example_cols[2].button("What's the available stock for FG1001?"):
+    st.session_state.pending_question = "What's the available stock for FG1001?"
+
 # The chat input box, pinned to the bottom of the page by Streamlit.
 user_question = st.chat_input("Ask a question")
+
+# A button click sets pending_question and triggers a rerun; pick that up
+# here as if it had been typed, then clear it so it doesn't repeat.
+if st.session_state.pending_question:
+    user_question = st.session_state.pending_question
+    st.session_state.pending_question = None
 
 # EMPTY INPUT GUARD: matches ask.py's own "if not q.strip(): continue"
 # check in its command-line loop. st.chat_input already won't submit a
