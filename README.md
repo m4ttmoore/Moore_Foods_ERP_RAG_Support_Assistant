@@ -1,6 +1,8 @@
 # Moore Foods ERP Support Assistant
 
-A proof of concept for a RAG powered ERP Support Assistant that uses functional (but fictional) ERP documentation (`Moore_Foods_ERP_Process_Knowledge_Base_v3.docx`) to answer common process, rule, status, and role questions about an ERP system, in this case Moore Foods' fictional ERP system. As of Phase 2, it also connects to a live SQLite database to answer questions about the current status of a specific sales order or the current stock level of a specific item.
+**Try it live: https://moorefoods-erp-rag.streamlit.app/**
+
+A proof of concept for a RAG powered ERP Support Assistant that uses functional (but fictional) ERP documentation (`Moore_Foods_ERP_Process_Knowledge_Base_v3.docx`) to answer common process, rule, status, and role questions about an ERP system, in this case Moore Foods' fictional ERP system. As of Phase 2, it also connects to a live SQLite database to answer questions about the current status of a specific sales order or the current stock level of a specific item. As of Phase 3, it's wrapped in a Streamlit chat interface and deployed publicly, rather than requiring a terminal.
 
 I built this to explore how AI can support everyday business practice by making organisational knowledge, and now live operational data, easier to access, without replacing the underlying systems or the people who know them.
 
@@ -17,6 +19,7 @@ It has also given me practical experience in Python, SQL, prompt engineering, RA
 | LLM | Claude (claude-sonnet-4-6) via the Anthropic API, including native tool-calling |
 | Document parsing | python-docx |
 | Live data source | SQLite (Moore_Foods_ERP.db), accessed via Python's built-in sqlite3 module |
+| UI | Streamlit, deployed on Streamlit Community Cloud |
 
 ## Project Structure
 
@@ -33,18 +36,22 @@ Moore_Foods_ERP_RAG_Support_Assistant/
 │   ├── Moore_Foods_RAG_Test_Script.docx
 │   ├── Phase2_Scope_and_Requirements.docx
 │   ├── Phase2_Function_Design.docx
-│   └── Phase2_Test_Script.docx      # includes the fixes/issues log and test run summary
-├── chroma_db/                   # Generated vector database (Phase 3)
+│   ├── Phase2_Test_Script.docx      # includes the fixes/issues log and test run summary
+│   ├── Phase3_Scope_and_Requirements.docx
+│   └── Phase3_Function_and_Layout_Design.docx
+├── chroma_db/                    # Generated vector database — committed deliberately as of Phase 3, see "Before Pushing to GitHub" below
 ├── knowledge_base.txt            # Extracted plain text (Phase 2 of docs build)
 ├── load_document.py              # Extracts text from .docx
 ├── chunk_document.py             # Splits text into heading based chunks
 ├── add_metadata.py               # Tags chunks with module IDs
 ├── build_index.py                # Embeds chunks and builds the vector database
 ├── test_search.py                # Checks retrieval quality
-├── test_retriever.py             # Configures and tests the retriever
+├── test_retriever.py              # Configures and tests the retriever
 ├── tools.py                      # Phase 2 rollout, live-data tool functions (get_order_status, get_stock_level)
 ├── test_tools.py                 # Phase 2 rollout, standalone tests for tools.py
-└── ask.py                        # The interactive RAG assistant, now with tool-calling
+├── ask.py                        # The interactive RAG assistant, now with tool-calling
+├── app.py                        # Phase 3 rollout, Streamlit chat interface wrapping ask()
+└── requirements.txt              # Phase 3 rollout, pinned dependencies for local + cloud deployment
 ```
 
 ## Glossary
@@ -127,6 +134,23 @@ Phase 1 was documentation-only by design; the source document's own scope explic
 
 **Testing & validation.** A new structured test script (`Documentation/Phase2_Test_Script.docx`), following the same format as the Phase 1 script, covers 6 categories: order status lookups (all 8 status values), stock level lookups (single-warehouse, multi-warehouse, no-inventory, and quarantine-only items), invalid ID handling, combined documentation-plus-live-data questions, and two regression categories confirming Phase 1 behaviour and appropriately narrow-scoped declines still hold. The same document also holds the fixes/issues log and the test run summary (pass rate before and after each fix). See Testing below.
 
+## How It Works — Phase 3 (Simple UI)
+
+Phases 1 and 2 were both accessible only via `python ask.py`, a command-line loop. Phase 3 wraps the same, unchanged `ask()` function in a Streamlit chat interface and deploys it publicly, so it's usable and demoable without a terminal.
+
+**Scope decision.** Phase 3 was deliberately scoped as a UI wrapper only, no changes to retrieval, tool-calling, or the system prompt. Full reasoning is in `Documentation/Phase3_Scope_and_Requirements.docx`.
+
+**Design before build.** Before writing any Streamlit code, I mapped out the page layout, session state structure, and exactly how `ask()`'s existing four return values (`answer`, `retrieved_docs`, `stop_reason`, `tools_used`) map to UI elements, so the UI only displays what `ask()` already provides rather than inventing new data. Full detail in `Documentation/Phase3_Function_and_Layout_Design.docx`.
+
+**Incremental build.** `app.py` was built in three passes: a minimal chat loop calling `ask()` with no styling, then an expandable "Details" panel showing retrieved section count and any tool calls (mirroring the command-line version's closing summary line), then error handling for three failure modes — empty/whitespace input, a failed `ask()` call mid-conversation, and a failed startup (e.g. missing API keys or database).
+
+**Deployment, and two real bugs found in the process.** Deployed to Streamlit Community Cloud from a `phase-3-ui` branch, later merged into `main` once the live version was confirmed working. Deployment surfaced two genuine bugs that hadn't shown up in any local testing, both the same root cause in different files:
+
+- `ask.py`'s Chroma index was opened with a relative path (`"./chroma_db"`), and `tools.py`'s database path was a manually-typed relative path. Both depend on the current working directory at runtime, which differed between my local terminal and Streamlit Cloud's environment. Neither failure raised an error, they each silently returned zero results (an empty vector search, and a "unable to retrieve data" from the database connection), which is a more dangerous failure mode than a crash since it's easy to mistake for "the assistant just doesn't know this." Both were fixed by anchoring the path to each file's own location via `os.path.dirname(os.path.abspath(__file__))`, rather than relying on the working directory.
+- Deleting and immediately recreating a Streamlit Cloud app under the exact same subdomain produced a persistent "you do not have access to this app or it does not exist" error that didn't resolve with a reboot, a different browser, or checking GitHub's OAuth permissions. Deploying fresh under a new, never-used subdomain worked immediately, suggesting a short propagation delay or caching issue on subdomain reuse rather than anything wrong with the repo or configuration.
+
+**Testing.** A lightweight verification pass (not a full re-certification, since no retrieval/tool-calling logic changed) confirmed: a documentation-only question, an order status lookup, a stock level lookup, a combined documentation-plus-live-data question, and an empty-input submission all behave identically through the deployed UI as they did on the command line. See Testing below.
+
 ## System Prompt Rules (final state)
 
 1. Classify the question type internally (process, rule, definition, troubleshooting, role). Never state the classification in the answer, and never use markdown, since answers are shown as plain text.
@@ -189,6 +213,19 @@ Full details of each failure and its fix are logged in the fixes/issues table at
 
 All three were resolved with a single rewrite of Rule 6, and re-confirmed with a full 23/23 re-run, including a check that nothing in Phase 1's documentation-only behaviour had regressed.
 
+### Phase 3 (Simple UI)
+
+No new test script document for this phase — the acceptance criteria in `Documentation/Phase3_Scope_and_Requirements.docx` called for a lightweight spot-check against already-validated questions, not a full re-certification, since `ask.py`'s logic was intentionally untouched. All of the following were confirmed on the actual deployed URL, not just locally, after the two path-resolution fixes described above:
+
+| Check | Result |
+|---|---|
+| Documentation-only question | Pass |
+| Order status lookup (tool-calling) | Pass |
+| Stock level lookup (tool-calling, multi-warehouse aggregation) | Pass |
+| Combined documentation + live-data question | Pass |
+| Empty/whitespace input | Pass |
+| Simulated startup failure (missing API key) | Pass — clean error message, no crash |
+
 ## Cost
 
 After a full Phase 6 test cycle, roughly 100 questions across the baseline run, the retests, and the final re certification, my actual Anthropic spend was $0.38 of a $5.00 balance, in line with my original estimate of around $0.008 per question. Voyage AI embedding spend across two full index rebuilds came to under $0.01.
@@ -197,11 +234,11 @@ Phase 2's tool-calling loop adds an extra API round trip whenever a tool is used
 
 ## Current Status
 
-**Done:** Phases 1 through 6 (documentation RAG, planning through full testing and validation), and Phase 2 of the overall project (live data retrieval for sales order status and item stock level via tool-calling), fully tested and re-certified at 100%.
+**Done:** Phases 1 through 6 (documentation RAG, planning through full testing and validation), Phase 2 (live data retrieval for sales order status and item stock level via tool-calling, fully tested and re-certified at 100%), and Phase 3 (public Streamlit UI, deployed and verified at https://moorefoods-erp-rag.streamlit.app/).
 
-**Out of scope for this version:** purchase order and production order data, customer credit status, warehouse capacity, and any aggregate/count/list-style live-data question. These were deliberately deferred rather than built into this rollout — see `Documentation/Phase2_Scope_and_Requirements.docx` for the reasoning. A simple user-facing UI (currently command-line only) is also a separate, not-yet-started phase.
+**Out of scope for this version:** purchase order and production order data, customer credit status, warehouse capacity, and any aggregate/count/list-style live-data question. These were deliberately deferred rather than built into Phase 2 — see `Documentation/Phase2_Scope_and_Requirements.docx` for the reasoning.
 
-**What I want to look at next:** a Phase 2b covering purchase order and production data using the same tool-calling pattern, a simple UI (likely Streamlit) so the assistant is demoable without a terminal, and a commented, template version of the scripts so someone else could reuse them for a different project without much rework.
+**What I want to look at next:** a Phase 2b covering purchase order and production data using the same tool-calling pattern, and a commented, template version of the scripts so someone else could reuse them for a different project without much rework.
 
 ## Before Pushing to GitHub
 
@@ -211,9 +248,15 @@ Add a `.gitignore` file with at least:
 .env
 venv/
 __pycache__/
-chroma_db/
+~$*.docx
+knowledge_base.txt
+*.db-journal
+*.db-wal
+*.db-shm
 ```
 
-This keeps API keys, my local Python environment, and the generated vector database out of version control, where none of them belong.
+This keeps API keys, my local Python environment, Word's temporary lock files, and regenerable/transient files out of version control, where none of them belong.
 
 `Database/Moore_Foods_ERP.db` is committed deliberately, since it's fictional test data and anyone cloning this repo needs it to run `ask.py` or `test_tools.py` out of the box. If you're adapting this project for a real database, exclude your actual data file instead and provide a way to seed a sample database, rather than committing real records.
+
+`chroma_db/` was originally gitignored, but is now committed deliberately as of Phase 3. A generated folder normally doesn't belong in version control, but Streamlit Community Cloud deploys directly from the GitHub repo with no separate build step to regenerate it, so the index needs to actually be present in the repo for the deployed app to have anything to retrieve from. If you're adapting this project and don't need a public cloud deployment, re-adding `chroma_db/` to `.gitignore` and rebuilding it locally via `build_index.py` is the more normal approach.
