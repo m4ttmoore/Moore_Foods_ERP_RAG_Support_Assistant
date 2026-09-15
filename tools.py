@@ -8,8 +8,16 @@ their own.
 """
 
 import sqlite3
+import os
 
-DB_PATH = r"Database\Moore_Foods_ERP.db"
+# PHASE 3 FIX: absolute path anchored to this file's own location, same
+# reasoning as the equivalent fix in ask.py's Chroma path. A relative or
+# manually-typed path (e.g. "Database/Moore_Foods_ERP.db") depends on the
+# working directory at runtime, which differs between a local terminal
+# and a cloud deployment, causing sqlite3.connect to either fail or open
+# a nonexistent path silently depending on the OS.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "Database", "Moore_Foods_ERP.db")
 
 STATUS_MEANINGS = {
     "SO-OPEN": "Order created, not yet allocated",
